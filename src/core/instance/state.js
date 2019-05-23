@@ -46,18 +46,20 @@ export function proxy (target: Object, sourceKey: string, key: string) {
 }
 
 export function initState (vm: Component) {
-  vm._watchers = []
+  // 以下这些初始化都涉及到数据转化为 Observer 对象的过程
+  vm._watchers = [] // 新建一个订阅者列表
   const opts = vm.$options
-  if (opts.props) initProps(vm, opts.props)
-  if (opts.methods) initMethods(vm, opts.methods)
+  if (opts.props) initProps(vm, opts.props) // 初始化 Props，与 initData 差不多
+  if (opts.methods) initMethods(vm, opts.methods) // 初始化 Methods，Methods 的初始化比较简单，就是作用域的重新绑定。
   if (opts.data) {
-    initData(vm)
+    initData(vm) // 初始化 Data，响应式关键步
   } else {
-    observe(vm._data = {}, true /* asRootData */)
+    observe(vm._data = {}, true /* asRootData */) //如果没有 data，则观察一个空对象
   }
+  // 初始化 computed，这部分会涉及 Watcher 类以及依赖收集，computed 其实本身也是一种特殊的 Watcher
   if (opts.computed) initComputed(vm, opts.computed)
   if (opts.watch && opts.watch !== nativeWatch) {
-    initWatch(vm, opts.watch)
+    initWatch(vm, opts.watch) // 初始化 watch，这部分会涉及 Watcher 类以及依赖收集
   }
 }
 
@@ -110,11 +112,15 @@ function initProps (vm: Component, propsOptions: Object) {
 }
 
 function initData (vm: Component) {
+  /*1.保证 data 为纯对象
+  **2.判断与 props 里的属性是否有重复，有就报错
+  **3.进行数据代理，方便数据读取，代理后我们可以直接使用 vm.key，而不需要 vm._data.key
+  **4.调用 observe 方法，这是响应式的关键步！*/
   let data = vm.$options.data
   data = vm._data = typeof data === 'function'
     ? getData(data, vm)
     : data || {}
-  if (!isPlainObject(data)) {
+  if (!isPlainObject(data)) { // 保证data必须为纯对象
     data = {}
     process.env.NODE_ENV !== 'production' && warn(
       'data functions should return an object:\n' +
@@ -137,18 +143,19 @@ function initData (vm: Component) {
         )
       }
     }
-    if (props && hasOwn(props, key)) {
+    if (props && hasOwn(props, key)) { // 是props，则不代理
+      // 如果和 props 里面的变量重了，则抛出 Warning
       process.env.NODE_ENV !== 'production' && warn(
         `The data property "${key}" is already declared as a prop. ` +
         `Use prop default value instead.`,
         vm
       )
-    } else if (!isReserved(key)) {
-      proxy(vm, `_data`, key)
+    } else if (!isReserved(key)) { // 否则将属性代理的 vm 上，这样就可以通过 vm.xx 访问到 vm._data.xx
+      proxy(vm, `_data`, key) //proxy方法遍历 data 的 key，把 data 上的属性代理到 vm 实例上
     }
   }
   // observe data
-  observe(data, true /* asRootData */)
+  observe(data, true /* asRootData */) //关键步！observe(data, this)方法来对 data 做监控
 }
 
 export function getData (data: Function, vm: Component): any {

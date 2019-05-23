@@ -41,18 +41,22 @@ export class Observer {
 
   constructor (value: any) {
     this.value = value
-    this.dep = new Dep()
+    this.dep = new Dep() // 一个 Dep对象实例，Watcher 和 Observer 之间的纽带
     this.vmCount = 0
-    def(value, '__ob__', this)
+    def(value, '__ob__', this) // 把自身 this 添加到 value 的 __ob__ 属性上
+    // Observer 对象的标志就是 __ob__ 这个属性，这个属性保存了 Observer 对象自己本身。对象在转化为 Observer 对象的过程中是一个递归的过程，
+    // 对象的子元素如果是对象或数组的话，也会转化为 Observer 对象
     if (Array.isArray(value)) {
+      // 数组增强方法中对 Array 的 ‘push’, ‘pop’, ‘shift’, ‘unshift’, ‘splice’, ‘sort’, ‘reverse’ 方法做了增强实现，
+      // 这也是 Vue.js 中数组操作只能使用这 7 个方法的原因
       if (hasProto) {
         protoAugment(value, arrayMethods)
       } else {
         copyAugment(value, arrayMethods, arrayKeys)
       }
-      this.observeArray(value)
+      this.observeArray(value) //如果是数组则观察数组
     } else {
-      this.walk(value)
+      this.walk(value) //观察单个元素
     }
   }
 

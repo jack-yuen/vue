@@ -44,8 +44,8 @@ export default class Watcher {
 
   constructor (
     vm: Component,
-    expOrFn: string | Function,
-    cb: Function,
+    expOrFn: string | Function, // expOrFn 最终会被转换为 getter 函数,依赖收集的入口就是 get 函数。
+    cb: Function, // cb 是更新时执行的回调
     options?: ?Object,
     isRenderWatcher?: boolean
   ) {
@@ -53,7 +53,7 @@ export default class Watcher {
     if (isRenderWatcher) {
       vm._watcher = this
     }
-    vm._watchers.push(this)
+    vm._watchers.push(this) // 将当前 Watcher 类推送到对应的 Vue 实例中
     // options
     if (options) {
       this.deep = !!options.deep
@@ -77,8 +77,10 @@ export default class Watcher {
       : ''
     // parse expression for getter
     if (typeof expOrFn === 'function') {
+      // 如果是函数，相当于指定了当前订阅者获取数据的方法，每次订阅者通过这个方法获取数据然后与之前的值进行对比
       this.getter = expOrFn
     } else {
+      // 否则的话将表达式解析为可执行的函数
       this.getter = parsePath(expOrFn)
       if (!this.getter) {
         this.getter = noop
@@ -97,12 +99,16 @@ export default class Watcher {
 
   /**
    * Evaluate the getter, and re-collect dependencies.
-   */
+   */ // 依赖收集的入口
   get () {
-    pushTarget(this)
+    // Dep.target 是个依赖收集过程中的重要一步，getter 函数中就是通过判断 Dep.target 的有无来判断是 Watcher 初始化时调用的还是普通数据读取，
+    // 如果有则进行依赖收集。???????????????
+    pushTarget(this) // 设置全局变量 Dep.target，将 Watcher 保存在这个全局变量中
     let value
     const vm = this.vm
     try {
+      // 调用 getter 函数，进入 get 方法进行依赖收集操作.去 touch Watcher 初始化时传入的参数 expOrFn 中涉及到的每一项数据，
+      // 然后触发该数据项的 getter 函数
       value = this.getter.call(vm, vm)
     } catch (e) {
       if (this.user) {
@@ -116,7 +122,7 @@ export default class Watcher {
       if (this.deep) {
         traverse(value)
       }
-      popTarget()
+      popTarget() // 将全局变量 Dep.target 置为 null
       this.cleanupDeps()
     }
     return value
