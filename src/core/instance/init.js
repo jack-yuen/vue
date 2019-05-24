@@ -51,10 +51,10 @@ export function initMixin (Vue: Class<Component>) {
     vm._self = vm
     initLifecycle(vm) // vm 的生命周期相关变量初始化
     initEvents(vm) // vm 的事件监控初始化
-    initRender(vm) // 模板解析
+    initRender(vm) // 模板解析,renderContext/$slots/$scopedSlots/$createElement等的初始化
     callHook(vm, 'beforeCreate')
-    initInjections(vm) // resolve injections before data/props
-    initState(vm) // vm 的状态初始化，prop/data/computed/method/watch 都在这里完成初始化，是响应式的关键步！
+    initInjections(vm) // resolve injections before data/props,作为props的值被动态改变时的处理
+    initState(vm) // vm 的状态初始化,注册reactivity,prop/data/computed/method/watch 都在这里完成初始化
     initProvide(vm) // resolve provide after data/props
     callHook(vm, 'created')
 

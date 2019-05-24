@@ -49,17 +49,17 @@ export function initState (vm: Component) {
   // 以下这些初始化都涉及到数据转化为 Observer 对象的过程
   vm._watchers = [] // 新建一个订阅者列表
   const opts = vm.$options
-  if (opts.props) initProps(vm, opts.props) // 初始化 Props，与 initData 差不多
-  if (opts.methods) initMethods(vm, opts.methods) // 初始化 Methods，Methods 的初始化比较简单，就是作用域的重新绑定。
+  if (opts.props) initProps(vm, opts.props) // 初始化Props并绑定到reactivity(非reserved字段)...
+  if (opts.methods) initMethods(vm, opts.methods) // 初始化 Methods,作用域的重新绑定...
   if (opts.data) {
-    initData(vm) // 初始化 Data，响应式关键步
+    initData(vm) // 初始化Data并绑定到reactivity...
   } else {
-    observe(vm._data = {}, true /* asRootData */) //如果没有 data，则观察一个空对象
+    observe(vm._data = {}, true /* asRootData */)
   }
-  // 初始化 computed，这部分会涉及 Watcher 类以及依赖收集，computed 其实本身也是一种特殊的 Watcher
+  // 初始化 computed,涉及Watcher类以及依赖收集,computed本身也是一种特殊的Watcher
   if (opts.computed) initComputed(vm, opts.computed)
   if (opts.watch && opts.watch !== nativeWatch) {
-    initWatch(vm, opts.watch) // 初始化 watch，这部分会涉及 Watcher 类以及依赖收集
+    initWatch(vm, opts.watch) // 初始化 watch,涉及Watcher类以及依赖收集
   }
 }
 
@@ -111,16 +111,16 @@ function initProps (vm: Component, propsOptions: Object) {
   toggleObserving(true)
 }
 
-function initData (vm: Component) {
-  /*1.保证 data 为纯对象
+/*1.保证 data 为纯对象
   **2.判断与 props 里的属性是否有重复，有就报错
   **3.进行数据代理，方便数据读取，代理后我们可以直接使用 vm.key，而不需要 vm._data.key
   **4.调用 observe 方法，这是响应式的关键步！*/
+function initData (vm: Component) {
   let data = vm.$options.data
   data = vm._data = typeof data === 'function'
     ? getData(data, vm)
     : data || {}
-  if (!isPlainObject(data)) { // 保证data必须为纯对象
+  if (!isPlainObject(data)) { // 保证data必须为纯对象,否则抛错
     data = {}
     process.env.NODE_ENV !== 'production' && warn(
       'data functions should return an object:\n' +
@@ -143,19 +143,17 @@ function initData (vm: Component) {
         )
       }
     }
-    if (props && hasOwn(props, key)) { // 是props，则不代理
-      // 如果和 props 里面的变量重了，则抛出 Warning
+    if (props && hasOwn(props, key)) { // 包含在 props 中,不代理且抛出 warning
       process.env.NODE_ENV !== 'production' && warn(
         `The data property "${key}" is already declared as a prop. ` +
         `Use prop default value instead.`,
         vm
       )
-    } else if (!isReserved(key)) { // 否则将属性代理的 vm 上，这样就可以通过 vm.xx 访问到 vm._data.xx
-      proxy(vm, `_data`, key) //proxy方法遍历 data 的 key，把 data 上的属性代理到 vm 实例上
+    } else if (!isReserved(key)) { // 将属性代理的 vm 上,这样就可以通过 vm.xx 访问到 vm._data.xx
+      proxy(vm, `_data`, key) // proxy方法遍历 data 的 key, 把 data 上的属性代理到 vm 实例上
     }
   }
-  // observe data
-  observe(data, true /* asRootData */) //关键步！observe(data, this)方法来对 data 做监控
+  observe(data, true /* asRootData */) // 对 data 实现 reactivity 的关键
 }
 
 export function getData (data: Function, vm: Component): any {
